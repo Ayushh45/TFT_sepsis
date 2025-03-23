@@ -1,127 +1,100 @@
 import streamlit as st
 import pandas as pd
-import torch
-import pytorch_lightning as pl
-from pytorch_forecasting import TemporalFusionTransformer
-from sklearn.preprocessing import StandardScaler
+import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from tft_sepsiiss import *  # Import your model and functions
 
-# Streamlit page configuration
-st.set_page_config(page_title="Sepsis Prediction", layout="wide")
+# --- Page Configuration ---
+st.set_page_config(page_title="Sepsis Prediction Dashboard", page_icon="⚕️", layout="wide")
 
-# Title and description
-st.title("Sepsis Prediction Dashboard")
-st.write("""
-This app predicts sepsis based on vital signs and other clinical data. 
-You can upload your dataset and click on "Predict" to see the prediction results.
-""")
+# --- Sidebar ---
+st.sidebar.title("🔍 Sepsis Prediction App")
+st.sidebar.subheader("Navigate")
 
-# File uploader
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+page = st.sidebar.radio("Go to", ["Home", "Prediction", "Visualizations", "About"])
 
-if uploaded_file is not None:
-    # Load the dataset
-    df = pd.read_csv(uploaded_file)
+# --- Home Page ---
+if page == "Home":
+    st.title("Sepsis Prediction Dashboard")
+    st.image("https://cdn.pixabay.com/photo/2017/08/30/07/54/heart-2698050_960_720.jpg", use_column_width=True)
+    st.markdown("""
+    ### 🎯 **Goal**  
+    This app helps predict sepsis early based on patient data.
     
-    # Display dataset preview
-    st.write("Dataset preview:")
-    st.write(df.head())
+    ### ⚡ **Features**  
+    - Make live predictions  
+    - Visualize trends  
+    - Explore patient stats  
 
-    # Preprocess data
+    **Start by selecting a page from the sidebar ➡️**
+    """)
+
+# --- Prediction Page ---
+if page == "Prediction":
+    st.header("🩺 Make a Sepsis Prediction")
+    st.write("Fill in the details below to get a prediction:")
+
+    # User Input Form
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        hr = st.number_input("Heart Rate (HR)", min_value=30, max_value=200, value=80)
+        o2sat = st.number_input("Oxygen Saturation (O2Sat)", min_value=50.0, max_value=100.0, value=95.0)
+        temp = st.number_input("Temperature (°C)", min_value=30.0, max_value=45.0, value=37.0)
+    with col2:
+        wbc = st.number_input("White Blood Cells (WBC)", min_value=1.0, max_value=30.0, value=8.0)
+        sbp = st.number_input("Systolic Blood Pressure (SBP)", min_value=50, max_value=200, value=120)
+        lactate = st.number_input("Lactate", min_value=0.1, max_value=10.0, value=1.5)
+    with col3:
+        dbp = st.number_input("Diastolic Blood Pressure (DBP)", min_value=30, max_value=150, value=80)
+        creatinine = st.number_input("Creatinine", min_value=0.1, max_value=10.0, value=1.0)
+        resp = st.number_input("Respiratory Rate (Resp)", min_value=5, max_value=50, value=20)
+
+    # Predict Button
+    if st.button("Predict"):
+        # Prepare input data
+        patient_data = np.array([[hr, o2sat, temp, wbc, sbp, lactate, dbp, creatinine, resp]])
+        patient_data_scaled = scaler.transform(patient_data)  # Ensure scaling matches training
+
+        # Make prediction
+        result = TemporalFusionTransformer.predict(patient_data_scaled)
+        if result[0] == 1:
+            st.error("✅ Sepsis Detected!")
+        else:
+            st.success("🟢 No Sepsis Detected")
+
+# --- Visualization Page ---
+if page == "Visualizations":
+    st.header("📊 Data Visualizations")
+    st.write("Explore patient data through charts and graphs.")
+
+    # Load dataset (replace with your dataset)
+    df = pd.read_csv("/content/sepsis_data_part_2 - Copy.csv")
     columns = ['Patient_ID', 'Temp', 'HR', 'O2Sat', 'WBC', 'SBP', 'DBP', 'Lactate', 'Resp', 'Hour', 'Creatinine']
     df = df[columns]
 
-    # Handle missing values
-    numeric_cols = ['Temp', 'HR', 'O2Sat', 'WBC', 'SBP', 'DBP', 'Lactate', 'Resp', 'Creatinine']
-    df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+    # Example: Heatmap
+    st.subheader("Correlation Heatmap")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.heatmap(df.corr(), annot=True, cmap="coolwarm", ax=ax)
+    st.pyplot(fig)
 
-    # Normalize the data
-    scaler = StandardScaler()
-    df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    # Example: Distribution of Vital Signs
+    st.subheader("Distribution of Vital Signs")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.boxplot(data=df[["HR", "Temp", "Resp", "O2Sat", "SBP", "DBP", "WBC", "Lactate", "Creatinine"]], ax=ax)
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
 
-    # Define stricter sepsis condition
-    def sepsis_condition(row):
-        return (
-            (row['Temp'] > 39) or (row['Temp'] < 35) or
-            (row['HR'] > 100) or (row['Resp'] > 25) or
-            (row['WBC'] > 15) or (row['WBC'] < 3) or
-            (row['SBP'] < 85) or (row['Lactate'] > 3.0) or
-            (row['Creatinine'] > 1.5)
-        )
+# --- About Page ---
+if page == "About":
+    st.title("📘 About This Project")
+    st.markdown("""
+    - Built with **Streamlit**
+    - Data sourced from your dataset
+    - Model trained using the latest machine learning techniques
     
-    df['Sepsis_Condition'] = df.apply(sepsis_condition, axis=1).astype(int)
-    
-    # Create the final label
-    sepsis_counts = df.groupby('Patient_ID')['Sepsis_Condition'].sum()
-    df['Final_Sepsis_Label'] = df['Patient_ID'].map(lambda x: 1 if sepsis_counts[x] > 3 else 0)
+    💡 **Idea**: This app helps hospitals monitor and predict sepsis to save lives faster.
+    """)
 
-    # Display Sepsis Distribution
-    st.write("Sepsis Distribution:")
-    st.write(df['Final_Sepsis_Label'].value_counts())
-
-    # Load the pre-trained model
-    model = TemporalFusionTransformer.load_from_checkpoint("sepsis_tft_model.ckpt")
-
-    # Prepare the data for prediction
-    df['Patient_ID'] = df['Patient_ID'].astype(str)
-    df['time_idx'] = df.groupby('Patient_ID').cumcount()
-
-    # Define the TimeSeriesDataSet
-    max_encoder_length = 30
-    max_prediction_length = 10
-
-    prediction_data = TimeSeriesDataSet(
-        data=df,
-        time_idx="time_idx",
-        target="Final_Sepsis_Label",
-        group_ids=["Patient_ID"],
-        max_encoder_length=max_encoder_length,
-        max_prediction_length=max_prediction_length,
-        static_categoricals=["Patient_ID"],
-        time_varying_known_reals=numeric_cols + ['time_idx'],
-        time_varying_unknown_reals=["Final_Sepsis_Label"],
-        target_normalizer=None,
-        add_relative_time_idx=True,
-        add_target_scales=True,
-        add_encoder_length=True,
-    )
-
-    # Create dataloaders for prediction
-    prediction_dataloader = prediction_data.to_dataloader(train=False, batch_size=256, num_workers=4)
-
-    # Function to get predictions
-    def make_predictions():
-        predictions = []
-        model.eval()
-        for batch in prediction_dataloader:
-            x, y = batch
-            output = model(x)
-            predictions.append(output.prediction)
-        
-        # Combine predictions into a single tensor
-        predictions = torch.cat(predictions, dim=0)
-        return predictions
-
-    # Predict button
-    if st.button('Predict'):
-        st.write("Generating predictions...")
-        
-        # Make predictions
-        predictions = make_predictions()
-
-        # Convert predictions to DataFrame for easy interpretation
-        prediction_df = pd.DataFrame(predictions.numpy(), columns=["Sepsis Prediction"])
-        
-        # Display the predictions
-        st.write("Predictions:")
-        st.write(prediction_df)
-
-        # Plot the predictions
-        fig, ax = plt.subplots(figsize=(12, 5))
-        ax.plot(prediction_df["Sepsis Prediction"], label="Predicted Sepsis")
-        ax.set_title("Predicted Sepsis Over Time")
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Prediction")
-        ax.legend()
-        st.pyplot(fig)
-
+st.sidebar.info("🚀 Created by Team Aditya")
