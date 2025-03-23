@@ -70,7 +70,7 @@ if page == "Visualizations":
     st.write("Explore patient data through charts and graphs.")
 
     # Load dataset (replace with your dataset)
-    df = pd.read_csv("/content/sepsis_data_part_2 - Copy.csv")
+    df = pd.read_csv("/content/sepsis_data_part_1.csv")
     columns = ['Patient_ID', 'Temp', 'HR', 'O2Sat', 'WBC', 'SBP', 'DBP', 'Lactate', 'Resp', 'Hour', 'Creatinine']
     df = df[columns]
 
