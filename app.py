@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import StandardScaler
 #from tft_sepsiiss import *  # Import your model and functions
 
 # --- Page Configuration ---
