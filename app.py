@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
+import joblib
 #from tft_sepsiiss import *  # Import your model and functions
 
 # --- Page Configuration ---
@@ -58,7 +59,20 @@ if page == "Prediction":
         patient_data_scaled = scaler.transform(patient_data)  # Ensure scaling matches training
 
         # Make prediction
+        
+
+# Load the saved scaler from checkpoint
+        scaler = joblib.load("sepsis_tft_model.ckpt\scalar.pkl")
+
+# Prepare input data
+        patient_data = np.array([[hr, o2sat, temp, wbc, sbp, lactate, dbp, creatinine, resp]])
+
+# Transform data with the pre-trained scaler
+        patient_data_scaled = scaler.transform(patient_data)
+
+# Make prediction
         result = TemporalFusionTransformer.predict(patient_data_scaled)
+
         if result[0] == 1:
             st.error("✅ Sepsis Detected!")
         else:
