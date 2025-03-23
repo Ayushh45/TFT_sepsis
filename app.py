@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from tft_sepsiiss import *  # Import your model and functions
+#from tft_sepsiiss import *  # Import your model and functions
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Sepsis Prediction Dashboard", page_icon="⚕️", layout="wide")
