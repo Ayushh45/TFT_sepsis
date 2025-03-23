@@ -100,18 +100,6 @@ plt.title("Correlation Between Vital Signs")
 plt.show()
 
 
-# In[11]:
-
-
-plt.figure(figsize=(8, 5))
-sns.scatterplot(x=df["Lactate"], y=df["HR"], hue=df["O2Sat"], palette="coolwarm")
-plt.title("Lactate vs. Heart Rate (Sepsis Indicator)")
-plt.xlabel("Lactate")
-plt.ylabel("Heart Rate")
-plt.colorbar(label="O2 Saturation")
-plt.show()
-
-
 # In[12]:
 
 
